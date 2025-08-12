@@ -3,6 +3,7 @@ package main
 import (
 	"go-chat-server/db"
 	"go-chat-server/internal/user"
+	"go-chat-server/internal/websocket"
 	"go-chat-server/router"
 	"log"
 
@@ -20,6 +21,9 @@ func main() {
 	userSvc := user.NewService(userRepo)
 	userHandler := user.NewHandler(userSvc)
 
-	router.InitRouter(userHandler)
+	hub := websocket.NewHUb()
+	wsHandler := websocket.NewHandler(hub)
+
+	router.InitRouter(userHandler, wsHandler)
 	router.Start("0.0.0.0:8080")
 }
