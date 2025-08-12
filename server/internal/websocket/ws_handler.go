@@ -17,6 +17,16 @@ func NewHandler(h *Hub) *Handler {
 	}
 }
 
+type RoomRes struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type ClientRes struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+}
+
 func (h *Handler) CreateRoom(ctx *gin.Context) {
 	var req CreateRoomReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -67,4 +77,45 @@ func (h *Handler) JoinRoom(ctx *gin.Context) {
 		Username: username,
 	}
 
+	// Register new client through the register channel
+	h.hub.Register <- cl
+
+	// Broadcast the message
+	h.hub.Broadcast <- m
+	// Write message
+	go cl.writeMessage()
+	// Read message
+	cl.readMessage(h.hub)
+}
+
+func (h *Handler) GetRooms(ctx *gin.Context) {
+	rooms := make([]RoomRes, 0)
+
+	for _, r := range h.hub.Rooms {
+		rooms = append(rooms, RoomRes{
+			ID:   r.ID,
+			Name: r.Name,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, rooms)
+}
+
+func (h *Handler) GetClient(ctx *gin.Context) {
+	var clients []ClientRes
+	roomId := ctx.Param("roomId")
+
+	if _, ok := h.hub.Rooms[roomId]; ok {
+		clients = make([]ClientRes, 0)
+		ctx.JSON(http.StatusOK, clients)
+	}
+
+	for _, c := range h.hub.Rooms[roomId].Clients {
+		clients = append(clients, ClientRes{
+			ID:       c.ID,
+			Username: c.Username,
+		})
+	}
+
+	ctx.JSON(http.StatusOK, clients)
 }

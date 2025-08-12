@@ -23,6 +23,7 @@ func main() {
 
 	hub := websocket.NewHUb()
 	wsHandler := websocket.NewHandler(hub)
+	go hub.Run()
 
 	router.InitRouter(userHandler, wsHandler)
 	router.Start("0.0.0.0:8080")
