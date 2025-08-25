@@ -25,6 +25,7 @@ type CreateRoomReq struct {
 	Name string `json:"name"`
 }
 
+// writeMessage ini mengambil dari channel hub.Run()
 func (c *Client) writeMessage() {
 	defer func() {
 		c.Conn.Close()
@@ -40,6 +41,7 @@ func (c *Client) writeMessage() {
 	}
 }
 
+// Jadi setiap client ketik pesan, server langsung broadcast ke semua orang di room
 func (c *Client) readMessage(h *Hub) {
 	defer func() {
 		h.Unregister <- c

@@ -13,7 +13,7 @@ type Hub struct {
 	Broadcast  chan *Message
 }
 
-func NewHUb() *Hub {
+func NewHub() *Hub {
 	return &Hub{
 		Rooms:      make(map[string]*Room),
 		Register:   make(chan *Client),
@@ -22,9 +22,11 @@ func NewHUb() *Hub {
 	}
 }
 
+// hub.Run() ini mengatur pesan
 func (h *Hub) Run() {
 	for {
 		select {
+		// Memasukkan client baru ke room
 		case cl := <-h.Register:
 			if _, ok := h.Rooms[cl.RoomID]; ok {
 				r := h.Rooms[cl.RoomID]
@@ -34,6 +36,7 @@ func (h *Hub) Run() {
 				}
 			}
 
+		// Hapus client dari room
 		case cl := <-h.Unregister:
 			if _, ok := h.Rooms[cl.RoomID]; ok {
 				if _, ok := h.Rooms[cl.RoomID].Clients[cl.ID]; ok {
@@ -50,8 +53,11 @@ func (h *Hub) Run() {
 				}
 			}
 
+		// Menyebarkan pesan ke semua client dalam room yang sudah dibuat
 		case m := <-h.Broadcast:
 			if _, ok := h.Rooms[m.RoomID]; ok {
+				// Semua client di room akan mendapat pesan lewat channel cl.message
+				// Goroutine writeMessage() akan ambil dari channel ini, lalu kirim via websocket
 				for _, cl := range h.Rooms[m.RoomID].Clients {
 					cl.Message <- m
 				}

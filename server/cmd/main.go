@@ -21,8 +21,11 @@ func main() {
 	userSvc := user.NewService(userRepo)
 	userHandler := user.NewHandler(userSvc)
 
-	hub := websocket.NewHUb()
+	// Membuat hub untuk pusat koordinasi semua room
+	hub := websocket.NewHub()
 	wsHandler := websocket.NewHandler(hub)
+
+	// Jalan di go routine dengan terus listen channel Register, Unregister, dan Broadcast
 	go hub.Run()
 
 	router.InitRouter(userHandler, wsHandler)

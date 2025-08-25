@@ -27,6 +27,8 @@ type ClientRes struct {
 	Username string `json:"username"`
 }
 
+// Handler Create room
+// - Jadi setiap room punya clients (map userId -> Client)
 func (h *Handler) CreateRoom(ctx *gin.Context) {
 	var req CreateRoomReq
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -34,6 +36,7 @@ func (h *Handler) CreateRoom(ctx *gin.Context) {
 		return
 	}
 
+	// Membuat room
 	h.hub.Rooms[req.ID] = &Room{
 		ID:      req.ID,
 		Name:    req.Name,
@@ -53,6 +56,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func (h *Handler) JoinRoom(ctx *gin.Context) {
+	// Upgrade koneksi HTTP -> Websocket, agar client mempunyai koneksi tetap
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -63,6 +67,7 @@ func (h *Handler) JoinRoom(ctx *gin.Context) {
 	userId := ctx.Query("userId")
 	username := ctx.Query("username")
 
+	// Buat client object
 	cl := &Client{
 		Conn:     conn,
 		Message:  make(chan *Message),
@@ -71,20 +76,23 @@ func (h *Handler) JoinRoom(ctx *gin.Context) {
 		Username: username,
 	}
 
+	// Broadcast message client join room
 	m := &Message{
 		Content:  "A new user has joined the room",
 		RoomID:   roomId,
 		Username: username,
 	}
 
-	// Register new client through the register channel
+	// Meregisterkan client object ke Hub
 	h.hub.Register <- cl
 
-	// Broadcast the message
+	// Broadcast pesan user telah join
 	h.hub.Broadcast <- m
-	// Write message
+
+	// Menjalankan goroutine untuk menuliskan pesan ke client
 	go cl.writeMessage()
-	// Read message
+
+	// Mnejalankan fungsi baca pesan dari client
 	cl.readMessage(h.hub)
 }
 
